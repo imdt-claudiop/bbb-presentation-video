@@ -481,14 +481,31 @@ def iter_event_pages(
         yield fields, fields.get("presentation") or presentation, event_slide
 
 
-def resolve_page_keys(events: Iterable[Event], directory: str) -> None:
+def parse_conversion_page_ids(
+    element: etree._Element, page_ids: Dict[str, List[str]]
+) -> None:
+    """Record the page ids, in upload order, of a converted presentation.
+
+    The last conversion of a presentation wins, as in the publish scripts. Older
+    recordings have no pageIds element and leave the presentation out.
+    """
+    presentation = xml_subelement_opt(element, "presentationName")
+    ids = xml_subelement_opt(element, "pageIds")
+    if not presentation or not ids:
+        return
+    page_ids[presentation] = ids.split(",")
+
+
+def resolve_page_keys(
+    events: Iterable[Event], page_ids: Optional[Dict[str, List[str]]] = None
+) -> None:
     """Attach the stable page identity to every event that acts on a page.
 
     Two passes, because the id of a page can first appear on a later event than
     one that needs it: the page shown when a recording starts has no
     GotoSlideEvent of its own, but the annotations drawn on it name it.
     """
-    resolver = PageKeyResolver(directory)
+    resolver = PageKeyResolver(page_ids)
 
     for fields, presentation, slide in iter_event_pages(events):
         resolver.learn(presentation, slide, fields.get("page_id"))
@@ -515,6 +532,7 @@ def parse_events(
     last_timestamp = None
     have_record_events = False
     events: Deque[Event] = deque()
+    page_ids: Dict[str, List[str]] = {}
 
     root = etree.parse(f"{directory}/events.xml")
     root_e = root.getroot()
@@ -599,10 +617,13 @@ def parse_events(
                     tldraw.parse_camera_changed(
                         cast(tldraw.CameraChangedEvent, event), element
                     )
+                elif name == "ConversionCompletedEvent":
+                    # Only read for the page ids; not an event the renderers see.
+                    parse_conversion_page_ids(element, page_ids)
+                    continue
                 # Unused events
                 elif (
                     name == "CreatePresentationPodEvent"
-                    or name == "ConversionCompletedEvent"
                     or name == "GenerateSlideEvent"
                     or name == "SetPresentationDownloadable"
                 ):
@@ -667,7 +688,7 @@ def parse_events(
         }
         events.appendleft(start_record)
 
-    resolve_page_keys(events, directory)
+    resolve_page_keys(events, page_ids)
 
     return EventsInfo(
         bbb_version,

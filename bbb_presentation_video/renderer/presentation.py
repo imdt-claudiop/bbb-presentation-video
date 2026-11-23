@@ -248,12 +248,11 @@ class PresentationRenderer(Generic[CairoSomeSurface]):
     def load_page_svg(self) -> bool:
         """Load the current page from the svg named after its page id.
 
-        Slide files are named by page id, and the combined per-presentation pdf
-        is deliberately left alone when pages are inserted (see
-        InsertPagesSplicer in bigbluebutton), so its page order stops matching
-        the presentation as soon as an insert happens. The per-page svg is the
-        only asset that always is the page that was on screen, and it is what
-        the presentation playback draws too.
+        Slide files are named by page id, and inserting pages does not update
+        the combined per-presentation pdf (it stays the file that was uploaded),
+        so its page order stops matching the presentation as soon as an insert
+        happens. The per-page svg is the only asset that always is the page
+        that was on screen, and it is what the presentation playback draws too.
 
         Recordings from before slide files were named this way have no such
         file, and keep using the pdf.
