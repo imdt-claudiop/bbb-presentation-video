@@ -626,6 +626,8 @@ def parse_events(
                     name == "CreatePresentationPodEvent"
                     or name == "GenerateSlideEvent"
                     or name == "SetPresentationDownloadable"
+                    # The events that act on a page carry its id.
+                    or name == "PresentationPagesInsertedEvent"
                 ):
                     continue
                 else:

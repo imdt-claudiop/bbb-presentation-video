@@ -17,13 +17,16 @@ page ids in upload order. Recordings made before either existed get a composite
 key built from the page number, which behaves exactly like the per-number
 bookkeeping it replaces.
 
-The presentation playback reads the same ids: BigBlueButton::Events.get_page_ids
-(record-and-playback/core/lib/recordandplayback/generators/events.rb) keeps the
-last ConversionCompletedEvent of each presentation, and the publish script
+The presentation playback reads the same ids:
+BigBlueButton::Events.presentation_page_ids
+(record-and-playback/core/lib/recordandplayback/generators/events.rb) takes the
+pages of each presentation from its last ConversionCompletedEvent or
+PresentationPagesInsertedEvent, and the publish script
 (record-and-playback/presentation/scripts/publish/presentation.rb) opens a
-presentation shown for the first time on the first of those ids. Resolving the
-same way here keeps the video and the presentation playback in agreement on
-what a page is.
+presentation shown for the first time on the first page listed at that moment.
+Only the conversion's list is read here: the events that act on a page carry its
+id, and the first page agrees with the playback unless pages were inserted at
+the start of a presentation before it was ever shown.
 """
 
 from __future__ import annotations
@@ -53,10 +56,10 @@ class PageKeyResolver:
         a presentation is shared has no GotoSlideEvent of its own, but the
         annotations drawn on it name it, so the id can be borrowed from them.
         Like the upload-order page ids, this assumes the page number still
-        refers to the same page; no event records an insert, so a number seen
-        after one can name a different page. Events that carry their own id
-        never depend on either; in recordings with page ids those are all the
-        slide, whiteboard and cursor events.
+        refers to the same page; PresentationPagesInsertedEvent is not read, so
+        a number seen after an insert can name a different page. Events that
+        carry their own id never depend on either; in recordings with page ids
+        those are all the slide, whiteboard and cursor events.
         """
         if not page_id:
             return

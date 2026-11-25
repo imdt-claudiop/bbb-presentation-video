@@ -248,3 +248,16 @@ def test_parse_events_without_page_ids_falls_back_to_page_numbers(
         f"{PRESENTATION}/1",
         f"{PRESENTATION}/1",
     ]
+
+
+def test_parse_events_skips_an_insert_of_pages(tmp_path: Path, capsys: Any) -> None:
+    """The events that act on a page carry its id, so the insert itself is not read."""
+    inserted = f"""<event timestamp="1500" module="PRESENTATION" eventname="PresentationPagesInsertedEvent">
+    <presentationName>{PRESENTATION}</presentationName>
+    <podId>DEFAULT_PRESENTATION_POD</podId>
+    <pageIds>{PAGE_1},{PAGE_2},{INSERTED}</pageIds>
+  </event>"""
+    conversions = conversion(1000, f"{PAGE_1},{PAGE_2}") + inserted
+
+    assert page_keys_of(tmp_path, conversions) == [PAGE_1, PAGE_1]
+    assert "Unknown event" not in capsys.readouterr().out
